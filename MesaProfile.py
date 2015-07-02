@@ -101,4 +101,38 @@ class MesaProfile:
 		for k,v in self.head.iteritems():
 			self.star[k] = v
 
+	def str2num(self,s):
+		try:
+			num = float(s)
+		except ValueError:
+			num = int(s)
+		return num
 
+	def readHistory(self):
+		# Open mesa history file
+		self.fin = open(self.inProfileName,'r')
+		
+		self.fin.readline()
+		self.head_fields = self.fin.readline()
+		self.head_fields = self.head_fields.split()
+		self.head_values = self.fin.readline()
+		self.head_values = self.head_values.split()
+		self.head = self.fillDict(OrderedDict([]),self.head_fields,self.head_values)
+		
+		self.fin.readline()
+		self.fin.readline()
+
+		# Read time series data from the rest of the file
+		self.tzone_fields = self.fin.readline()
+		self.tzone_fields = self.tzone_fields.split()
+		self.star = OrderedDict([])
+		for tzf in self.tzone_fields:
+			self.star[tzf] = []
+		for l in self.fin:
+			ls = l.split()
+			for k,v in zip(self.tzone_fields,ls):
+				self.star[k].append(self.str2num(v))
+		# now convert to np arrays
+		for k in self.star.keys():
+			self.star[k] = np.array(self.star[k])
+			
