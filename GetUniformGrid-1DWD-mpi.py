@@ -33,10 +33,17 @@ This file is part of mesa2flash.
 from mpi4py import MPI
 import numpy as np
 import math
-import matplotlib.pyplot as plt
+import argparse
 from collections import OrderedDict
 from MesaProfile import MesaProfile
 from MapMesaComposition import MapMesaComposition
+
+parser = argparse.ArgumentParser()
+parser.add_argument('MESA_INPUT_FILE', type=str, help='Name of the input MESA profile.')
+parser.add_argument('-o', '--output', type=str, help='Name of the output file to write.')
+parser.add_argument('-drcm', '--delta_radius_cm', type=float, help='Step size to use in radius in units of cm.')
+parser.add_argument('-ip', '--interpolation', type=int, help='Interpolation type to use. 1 = Linear, 2 = Quadratic, 3 = Cubic. Cubic can suffer from continuity issues, so be careful. I recommend quadratic. This will not enforce HSE, you need WDBuilder to post-process the output this program creates in order to obtain HSE.')
+args = parser.parse_args()
 
 # Global MPI information
 mpi_comm = MPI.COMM_WORLD
@@ -48,7 +55,7 @@ cmperRsun = 6.955e10
 ### Import MESA Profile & Broadcast to all Processes ###
 if (mpi_rank == 0):
     mesa = MesaProfile()
-    mesaInProfileName = 'profile75.data'
+    mesaInProfileName = args.MESA_INPUT_FILE
     mesa.setInProfileName(mesaInProfileName)
     mesa.readProfile()
     mstar = mesa.getStar()
@@ -58,13 +65,22 @@ else:
 ######
 ### Specify Output Parameters ###
 # Specify uniform grid file to write
-gridFileName = 'profile75_Dr-100k_qic_renormed.dat'
+gridFileName = args.output
 # Specify separation between radius points in the uniform grid
-Dr = 1.0e5 # units are in cm! (1km)
+Dr = args.delta_radius_cm # units are in cm! (1.0e5 = 1km)
 # Specify the interpolation type (only ONE of cubic, quad, or linear may be True)
 cubic = False
-quad = True
+quad = False
 linear = False
+
+if args.interpolation == 1:
+  linear = True
+elif args.interpolation == 2:
+  quad = True
+elif args.interpolation == 3:
+  cubic = True
+else: 
+  print 'ERROR: YOU MUST SPECIFY AN INTERPOLATION TYPE VIA THE -ip OPTION.'
 
 # Set variables determining the interpolation order
 ## poly_n: polynomial order
