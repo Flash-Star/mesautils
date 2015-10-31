@@ -108,7 +108,7 @@ if (mpi_rank == 0):
         varx = OrderedDict([('c12',2),('o16',3),('ne20',4),('ne22',5)])
     else:
         nucs = Nuclides()
-        vars_list = [('density',0),('temperature',1)]
+        vars_list = [('density',0),('temperature',1),('ye',2)]
         start_varx = len(vars_list)
         varx_list = []
         for k in mstar.keys():
