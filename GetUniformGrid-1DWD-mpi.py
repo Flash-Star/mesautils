@@ -116,6 +116,8 @@ if (mpi_rank == 0):
                 varx_list.append((k,start_varx))
                 start_varx += 1
         vars_list += varx_list
+        varx = OrderedDict(varx_list)
+        vars = OrderedDict(vars_list)
         
     ### Create useful data structures ###
     # Number of MESA zones
