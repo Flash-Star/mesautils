@@ -22,8 +22,11 @@ import numpy as np
 from collections import OrderedDict
 
 class MesaProfile:
-	def __init__(self):
-		self.inProfileName = 'profile.data'
+        def __call__(self, pname=None):
+                self.__init__(pname)
+                
+	def __init__(self, pname=None):
+		self.inProfileName = pname
 
 		# Data structures
 		## The header is stored as a dictionary
@@ -35,6 +38,15 @@ class MesaProfile:
 		## The star data structure is a dictionary of numpy arrays
 		self.star = OrderedDict([])
 
+                if pname:
+                        self.setInProfileName(pname)
+                        if 'profile' in pname:
+                                self.readProfile()
+                        elif 'history' in pname:
+                                self.readHistory()
+                        else:
+                                raise ValueError('input must have \'profile\' or \'history\' in file name.')
+        
 	# Function declarations
 	def setInProfileName(self,iPN):
 		self.inProfileName = iPN
