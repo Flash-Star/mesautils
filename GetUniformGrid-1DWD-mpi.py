@@ -37,12 +37,14 @@ import argparse
 from collections import OrderedDict
 from MesaProfile import MesaProfile
 from MapMesaComposition import MapMesaComposition
+from Nuclides import Nuclides
 
 parser = argparse.ArgumentParser()
 parser.add_argument('MESA_INPUT_FILE', type=str, help='Name of the input MESA profile.')
 parser.add_argument('-o', '--output', type=str, help='Name of the output file to write.')
 parser.add_argument('-drcm', '--delta_radius_cm', type=float, help='Step size to use in radius in units of cm.')
 parser.add_argument('-ip', '--interpolation', type=int, help='Interpolation type to use. 1 = Linear, 2 = Quadratic, 3 = Cubic. Cubic can suffer from continuity issues, so be careful. I recommend quadratic. This will not enforce HSE, you need WDBuilder to post-process the output this program creates in order to obtain HSE.')
+parser.add_argument('-mfx', '--map_abundances_flash', action='store_true', help='Map the MESA abundances to FLASH reduced composition: C12, O16, Ne20, Ne22.')
 args = parser.parse_args()
 
 # Global MPI information
@@ -95,12 +97,28 @@ else:
     sys.exit()
 
 ######
-### Map MESA Abundances to FLASH Composition ###
 if (mpi_rank == 0):
-    mapper = MapMesaComposition()
-    fcomp = mapper.getmap(mstar)
-    for k in fcomp.keys():
-        mstar[k] = fcomp[k]
+    ### Map MESA Abundances to FLASH Composition ###
+    if args.map_abundances_flash:
+        mapper = MapMesaComposition()
+        fcomp = mapper.getmap(mstar)
+        for k in fcomp.keys():
+            mstar[k] = fcomp[k]
+        vars = OrderedDict([('density',0),('temperature',1),('c12',2),('o16',3),('ne20',4),('ne22',5)])
+        varx = OrderedDict([('c12',2),('o16',3),('ne20',4),('ne22',5)])
+    else:
+        nucs = Nuclides()
+        vars_list = [('density',0),('temperature',1),('ye',2)]
+        start_varx = len(vars_list)
+        varx_list = []
+        for k in mstar.keys():
+            if nucs.is_nuclide(k):
+                varx_list.append((k,start_varx))
+                start_varx += 1
+        vars_list += varx_list
+        varx = OrderedDict(varx_list)
+        vars = OrderedDict(vars_list)
+        
     ### Create useful data structures ###
     # Number of MESA zones
     npts = len(mstar['zone'])
@@ -117,8 +135,6 @@ if (mpi_rank == 0):
     mstar['rcminner'][1:npts] = np.array([mstar['radiuscm'][i-1] for i in range(1,npts)])
     mstar['rad_cm_ctr'] = (0.5*(mstar['radiuscm']**3 + mstar['rcminner']**3))**(1.0/3.0)    
 
-    vars = OrderedDict([('density',0),('temperature',1),('c12',2),('o16',3),('ne20',4),('ne22',5)])
-    varx = OrderedDict([('c12',2),('o16',3),('ne20',4),('ne22',5)])
     mstar['density'] = 10.0**mstar['logRho']
     
     #mstar['volume'] is the volume per zone in cm^3.
