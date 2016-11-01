@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('MESA_INPUT_FILE', type=str, help='Name of the input MESA profile.')
 parser.add_argument('-o', '--output', type=str, help='Name of the output file to write.')
 parser.add_argument('-drcm', '--delta_radius_cm', type=float, help='Step size to use in radius in units of cm.')
-parser.add_argument('-ip', '--interpolation', type=int, help='Interpolation type to use. 1 = Linear, 2 = Quadratic, 3 = Cubic. Cubic can suffer from continuity issues, so be careful. I recommend quadratic. This will not enforce HSE, you need WDBuilder to post-process the output this program creates in order to obtain HSE.')
+parser.add_argument('-ip', '--interpolation', type=int, help='Interpolation type to use. 1 = Linear, 2 = Quadratic, 3 = Cubic. Cubic can suffer from continuity issues, so be careful. I recommend quadratic. This will not enforce HSE, you need, e.g. WDBuilder to post-process the output this program creates in order to obtain HSE.')
 parser.add_argument('-mfx', '--map_abundances_flash', action='store_true', help='Map the MESA abundances to FLASH reduced composition: C12, O16, Ne20, Ne22.')
 args = parser.parse_args()
 
