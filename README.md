@@ -6,9 +6,6 @@ For a use example, see `run.sh`
 
 Also lets you open MESA profile and history files for ease of plotting.
 
-`nuclides.xml` was downloaded from the JINA Reaclib database
-[Reaclib homepage](https://groups.nscl.msu.edu/jina/reaclib/db/index.php)
-
 ## Dependencies:
 
 * Either python 2 or 3 (tested to yield the same output with versions 2.7.10 and 3.5.1)
