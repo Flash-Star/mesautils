@@ -9,5 +9,6 @@
 ## -ip=3 : Cubic
 # -drcm specifies the radial grid thickness in units of cm
 # -o specifies the name of the output file to create
+# The use of the flag -mfx will map abundances to a reduced set of nuclides for FLASH (C12, O16, Ne20, Ne22)
 
-mpiexec -np 6 python UniformMesaGrid.py -o profile75_uniform_composition_ye.dat -drcm=4e5 -ip=2 profile75.data
+mpiexec -np 6 python UniformMesaGrid.py -o gridded_profile75_original_X-ye.dat -drcm=4e5 -ip=2 -mfx profile75.data
