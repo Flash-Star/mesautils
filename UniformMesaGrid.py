@@ -30,6 +30,7 @@ This file is part of mesa2flash.
     You should have received a copy of the GNU General Public License
     along with mesa2flash.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import print_function
 from mpi4py import MPI
 import numpy as np
 import math
@@ -82,7 +83,7 @@ elif args.interpolation == 2:
 elif args.interpolation == 3:
   cubic = True
 else: 
-  print 'ERROR: YOU MUST SPECIFY AN INTERPOLATION TYPE VIA THE -ip OPTION.'
+  print('ERROR: YOU MUST SPECIFY AN INTERPOLATION TYPE VIA THE -ip OPTION.')
 
 # Set variables determining the interpolation order
 ## poly_n: polynomial order
@@ -93,7 +94,7 @@ elif (not cubic and quad and not linear):
 elif (not cubic and not quad and linear):
     poly_n = 1
 else:
-    print 'ERROR: no unique interpolation scheme chosen'
+    print('ERROR: no unique interpolation scheme chosen')
     sys.exit()
 
 ######
@@ -169,7 +170,7 @@ if(mpi_rank == 0):
     # Find how big to make the uniform grid
     ngridpts = (int(math.floor((mstar['radiuscm'][-1] - mstar['rcminner'][0])/Dr))+1)
     
-    print 'last modeldata radius: ' + str(mstar['radiuscm'][-1])
+    print('last modeldata radius: ' + str(mstar['radiuscm'][-1]))
     ugrid_to_scatter = OrderedDict([]) 
     # Construct the uniform grid radius points
     ugrid_to_scatter['rad_cm_ctr'] = np.array([0.0 for i in range(ngridpts)])
@@ -183,11 +184,11 @@ if(mpi_rank == 0):
         ugrid_to_scatter['rad_cm_ctr'][i] = ugrid_to_scatter['rad_cm_ctr'][i-1] + Dr
         ugrid_to_scatter['rad_cm_out'][i] = ugrid_to_scatter['rad_cm_out'][i-1] + Dr    
     
-    print 'last griddata radius: ' + str(ugrid_to_scatter['rad_cm_out'][-1])
+    print('last griddata radius: ' + str(ugrid_to_scatter['rad_cm_out'][-1]))
     for k in vars.keys():
         ugrid_to_scatter[k] = np.array([0.0 for i in range(ngridpts)])
     
-    ugkeys = ugrid_to_scatter.keys()
+    ugkeys = [k for k in ugrid_to_scatter.keys()]
 
 else:
     ngridpts = None
@@ -219,106 +220,109 @@ for k in ugkeys:
     ugrid[k] = mpi_comm.scatter(ugrid[k],root=0)
 
 #!don: find out if the scatter worked properly, yes it seems to have worked
-print 'Rank: ' + str(mpi_rank) + ' ugrid is... ' + str(ugrid) + ' length: ' + str(len(ugrid['rad_cm_inn']))
-print 'Rank: ' + str(mpi_rank) + ' elements_rank is... ' + str(elements_rank)
+print('Rank: ' + str(mpi_rank) + ' ugrid is... ' + str(ugrid) + ' length: ' + str(len(ugrid['rad_cm_inn'])))
+print('Rank: ' + str(mpi_rank) + ' elements_rank is... ' + str(elements_rank))
 
 ngridpts_rank = len(ugrid[ugkeys[0]])
     
 # Find which model points fall into which uniform grid intervals & vice-versa
-print 'Rank: ' + str(mpi_rank) + ' starting to find overlaps.'
+print('Rank: ' + str(mpi_rank) + ' starting to find overlaps.')
 for i in range(0,ngridpts_rank):
-	rint_cont = []	
-        j_contains = []
-	for j in range(0,npts):
-		if((mstar['rcminner'][j] >= ugrid['rad_cm_inn'][i]) and 
-                    (mstar['radiuscm'][j] <= ugrid['rad_cm_out'][i])):
-			rint_cont.append(j)
-                if((mstar['rcminner'][j] < ugrid['rad_cm_inn'][i] and mstar['radiuscm'][j] > ugrid['rad_cm_inn'][i])
-                    or (mstar['radiuscm'][j] > ugrid['rad_cm_out'][i] and mstar['rcminner'][j] < ugrid['rad_cm_out'][i])):
-                    j_contains.append(j) 
-	r_int_cont.append(rint_cont)
-        if len(rint_cont) == 0:
-            r_int_empty.append(i)
-            r_int_empty_zones.append(j_contains)
-print 'Rank: ' + str(mpi_rank) + ' completed finding overlaps.'
+    rint_cont = []	
+    j_contains = []
+    for j in range(0,npts):
+        if((mstar['rcminner'][j] >= ugrid['rad_cm_inn'][i]) and 
+            (mstar['radiuscm'][j] <= ugrid['rad_cm_out'][i])):
+                rint_cont.append(j)
+        if((mstar['rcminner'][j] < ugrid['rad_cm_inn'][i] and mstar['radiuscm'][j] > ugrid['rad_cm_inn'][i])
+            or (mstar['radiuscm'][j] > ugrid['rad_cm_out'][i] and mstar['rcminner'][j] < ugrid['rad_cm_out'][i])):
+            j_contains.append(j) 
+    r_int_cont.append(rint_cont)
+    if len(rint_cont) == 0:
+        r_int_empty.append(i)
+        r_int_empty_zones.append(j_contains)
+print('Rank: ' + str(mpi_rank) + ' completed finding overlaps.')
 
 ######
 
-print 'Rank: ' + str(mpi_rank) + ' beginning mass-averaging.'
+print('Rank: ' + str(mpi_rank) + ' beginning mass-averaging.')
 # Compute the mass-averaged quantities for each non-empty uniform grid interval !Parallelize!
 for i in range(0,ngridpts_rank):
-	if(len(r_int_cont[i]) != 0):
-	        # Interval [ugrid['rad_cm_inn'][i],ugrid['rad_cm_out'][i]]
-		# Compute edge contributions
+    if(len(r_int_cont[i]) != 0):
+        # Interval [ugrid['rad_cm_inn'][i],ugrid['rad_cm_out'][i]]
+        # Compute edge contributions
 
-		## Set Left Edge Data, 0 if there is a model point at ri (i=0)
-		leftData = np.array([0.0 for v in vars.keys()])
-		k = r_int_cont[i][0]
-                leftVol = 0.0
-                leftMass = 0.0
-		## If we aren't at the first point and no model point at r ...
-		if((i!=0 or mpi_rank!=0) and ugrid['rad_cm_inn'][i]!=mstar['rcminner'][k]):
-                    leftData = np.array([mstar[v][k-1] for v in vars.keys()])
-                    ri = ugrid['rad_cm_inn'][i]
-                    ro = mstar['radiuscm'][k-1]
-                    leftVol = (ri**2 + ri*ro + ro**2)*(ro-ri)
-                    leftMass = mstar['density'][k-1]*leftVol
-                    for vark,varv in vars.iteritems():
-                        if vark != 'density':
-                            leftData[varv] = leftData[varv]*leftMass # divide and multiply by total left Mass
-                    leftData[vars['density']] = (leftMass**2)/leftVol
-                            
-		## Set Right Edge Data
-		### 0 for the quantities if we are at the last grid interval
-		rightData = np.array([0.0 for v in vars.keys()])
-                rightVol = 0.0
-                rightMass = 0.0
-		# ki: index to the model point just beyond the last in this grid interval
-		ro = ugrid['rad_cm_out'][i]
-		ki = r_int_cont[i][-1]+1
-		if (ki!=npts):
-                    ri = mstar['rcminner'][ki]
-                    if (ri < ro): 
-                        rightData = np.array([mstar[v][ki] for v in vars.keys()])
-                        rightVol = (ro**2 + ro*ri + ri**2)*(ro-ri)
-                        rightMass = mstar['density'][ki]*rightVol
-                        for vark,varv in vars.iteritems():
-                            if vark != 'density':
-                                rightData[varv] = rightData[varv]*rightMass 
-                        rightData[vars['density']] = (rightMass**2)/rightVol
+        ## Set Left Edge Data, 0 if there is a model point at ri (i=0)
+        leftData = np.array([0.0 for v in vars.keys()])
+        k = r_int_cont[i][0]
+        leftVol = 0.0
+        leftMass = 0.0
+        ## If we aren't at the first point and no model point at r ...
+        if((i!=0 or mpi_rank!=0) and ugrid['rad_cm_inn'][i]!=mstar['rcminner'][k]):
+            leftData = np.array([mstar[v][k-1] for v in vars.keys()])
+            ri = ugrid['rad_cm_inn'][i]
+            ro = mstar['radiuscm'][k-1]
+            leftVol = (ri**2 + ri*ro + ro**2)*(ro-ri)
+            leftMass = mstar['density'][k-1]*leftVol
+            for vark in vars.keys():
+                varv = vars[vark]
+                if vark != 'density':
+                    leftData[varv] = leftData[varv]*leftMass # divide and multiply by total left Mass
+            leftData[vars['density']] = (leftMass**2)/leftVol
 
-		## Perform the averaging to fill the uniform grid
-		### Get partial sum over the MESA zones fully inside the uniform grid interval
-		intervalData = np.array([0.0 for v in vars.keys()])
-                intervalMass = 0.0
-                intervalVol = 0.0
-		for k in r_int_cont[i][0:-1]:
-                    ri = mstar['rcminner'][k]
-                    ro = mstar['radiuscm'][k]
-                    kVol = (ro**2 + ro*ri + ri**2)*(ro-ri)
-                    kMass = mstar['density'][k]*kVol
-                    intervalVol = intervalVol + kVol
-                    intervalMass = intervalMass + kMass
-                    kData = np.array([mstar[v][k] for v in vars.keys()])
-                    intervalData = intervalData + kMass*kData
-		sumData = intervalData+leftData+rightData 
-		sumMass = leftMass + rightMass + intervalMass
-                sumVol = leftVol + rightVol + intervalVol 
-                for vark,varv in vars.iteritems():
+        ## Set Right Edge Data
+        ### 0 for the quantities if we are at the last grid interval
+        rightData = np.array([0.0 for v in vars.keys()])
+        rightVol = 0.0
+        rightMass = 0.0
+        # ki: index to the model point just beyond the last in this grid interval
+        ro = ugrid['rad_cm_out'][i]
+        ki = r_int_cont[i][-1]+1
+        if (ki!=npts):
+            ri = mstar['rcminner'][ki]
+            if (ri < ro): 
+                rightData = np.array([mstar[v][ki] for v in vars.keys()])
+                rightVol = (ro**2 + ro*ri + ri**2)*(ro-ri)
+                rightMass = mstar['density'][ki]*rightVol
+                for vark in vars.keys():
+                    varv = vars[vark]
                     if vark != 'density':
-                        ugrid[vark][i] = sumData[varv]/sumMass
-                ugrid['density'][i] = sumMass/sumVol
-                if (i==0):
-                    print 'Rank: ' + str(mpi_rank) + ', r_int_cont[0]: ' + str(r_int_cont[i]) + ', leftMass: ' + str(leftMass) + ', rightMass: ' + str(rightMass) + ', intervalMass: ' + str(intervalMass)
-                # Some print statements possibly useful diagnostically
-#                print 'r_int_cont[i]: ' + str(r_int_cont[i])
-#                print 'leftMass: ' + str(leftMass)
-#                print 'rightMass: ' + str(rightMass)
-#                print 'intervalMass: ' + str(intervalMass)
-#                print 'leftVol: ' + str(leftVol)
-#                print 'rightVol: ' + str(rightVol)
-#                print 'intervalVol: ' +  str(intervalVol)
-print 'Rank: ' + str(mpi_rank) + ' completed mass-averaging.'        
+                        rightData[varv] = rightData[varv]*rightMass 
+                rightData[vars['density']] = (rightMass**2)/rightVol
+
+        ## Perform the averaging to fill the uniform grid
+        ### Get partial sum over the MESA zones fully inside the uniform grid interval
+        intervalData = np.array([0.0 for v in vars.keys()])
+        intervalMass = 0.0
+        intervalVol = 0.0
+        for k in r_int_cont[i][0:-1]:
+            ri = mstar['rcminner'][k]
+            ro = mstar['radiuscm'][k]
+            kVol = (ro**2 + ro*ri + ri**2)*(ro-ri)
+            kMass = mstar['density'][k]*kVol
+            intervalVol = intervalVol + kVol
+            intervalMass = intervalMass + kMass
+            kData = np.array([mstar[v][k] for v in vars.keys()])
+            intervalData = intervalData + kMass*kData
+        sumData = intervalData+leftData+rightData 
+        sumMass = leftMass + rightMass + intervalMass
+        sumVol = leftVol + rightVol + intervalVol 
+        for vark in vars.keys():
+            varv = vars[vark]
+            if vark != 'density':
+                ugrid[vark][i] = sumData[varv]/sumMass
+        ugrid['density'][i] = sumMass/sumVol
+        if (i==0):
+            print('Rank: ' + str(mpi_rank) + ', r_int_cont[0]: ' + str(r_int_cont[i]) + ', leftMass: ' + str(leftMass) + ', rightMass: ' + str(rightMass) + ', intervalMass: ' + str(intervalMass))
+       #  Some print statements possibly useful diagnostically
+       # print('r_int_cont[i]: ' + str(r_int_cont[i]))
+       # print('leftMass: ' + str(leftMass))
+       # print('rightMass: ' + str(rightMass))
+       # print('intervalMass: ' + str(intervalMass))
+       # print('leftVol: ' + str(leftVol))
+       # print('rightVol: ' + str(rightVol))
+       # print('intervalVol: ' +  str(intervalVol))
+print('Rank: ' + str(mpi_rank) + ' completed mass-averaging.')
                 
 # Mass-averaged quantities for all non-empty grid intervals have been computed.
 # Now interpolate between grid intervals to compute quantities for the empty 
@@ -337,7 +341,7 @@ def dinject(u,m):
     for vark in vars.keys():
         ugrid[vark][u] = mstar[vark][m]
 
-print 'Rank: ' + str(mpi_rank) + ' beginning interpolation.'
+print('Rank: ' + str(mpi_rank) + ' beginning interpolation.')
 for i in range(len(r_int_empty)): # !Parallelize!
 # The quantities in the empty grid intervals are set by quadratic interpolation
 # depending only on the quantities in the previous and next non-empty intervals
@@ -347,7 +351,7 @@ for i in range(len(r_int_empty)): # !Parallelize!
 # don't have to worry about them here.
 
         if (r_int_empty[i] == 0 or r_int_empty[i] == ngridpts_rank-1):
-            print 'Rank: ' + str(mpi_rank) + ', r_int_empty: ' + str(r_int_empty[i]) + ', r_int_empty_zones: ' + str(r_int_empty_zones[i]) + ', rad_cm_ctr[i]: ' + str(ugrid['rad_cm_ctr'][r_int_empty[i]])
+            print('Rank: ' + str(mpi_rank) + ', r_int_empty: ' + str(r_int_empty[i]) + ', r_int_empty_zones: ' + str(r_int_empty_zones[i]) + ', rad_cm_ctr[i]: ' + str(ugrid['rad_cm_ctr'][r_int_empty[i]]))
 
         nz = len(r_int_empty_zones[i])
         if nz==2:
@@ -367,19 +371,19 @@ for i in range(len(r_int_empty)): # !Parallelize!
                 dinject(j,k)
                 continue
         else:
-            print 'ERROR: nz neither 2 nor 1, nz=' + str(nz)
+            print('ERROR: nz neither 2 nor 1, nz=' + str(nz))
             sys.exit()
 
-       # print 'kB: ' + str(kB)
-       # print 'kC: ' + str(kC)
-       # print 'nz: ' + str(nz)
-       # print 'r_int_empty[' + str(i) + ']: ' + str(r_int_empty[i])
-       # print 'r_int_empty_zones[' + str(i) + ']: ' + str(r_int_empty_zones[i])
+       # print('kB: ' + str(kB))
+       # print('kC: ' + str(kC))
+       # print('nz: ' + str(nz))
+       # print('r_int_empty[' + str(i) + ']: ' + str(r_int_empty[i]))
+       # print('r_int_empty_zones[' + str(i) + ']: ' + str(r_int_empty_zones[i]))
 
         ## Do interpolation if you can't reuse the previous coefficients
         if ((kB != prevkB or kC != prevkC)):
-#            print 'kB: ' + str(kB)
-#            print 'kC: ' + str(kC)
+#            print('kB: ' + str(kB))
+#            print('kC: ' + str(kC))
             # Find quadratic coefficients for all variables via least-squares fitting
             # using two model points on either side if they exist, otherwise shift to an extra left or right
             if cubic:
@@ -394,7 +398,7 @@ for i in range(len(r_int_empty)): # !Parallelize!
                     klist = [kB,kC,kC+1]
             elif linear:
                 klist = [kB,kC]
-#            print 'klist: ' + str(klist)
+#            print('klist: ' + str(klist))
             rpows = np.array([[(mstar['rad_cm_ctr'][ki])**n for ki in klist] for n in range(0,2*poly_n+1)])
             rmat = np.array([[sum(rpows[j]) for j in range(k+poly_n,k-1,-1)] for k in range(poly_n,-1,-1)])
             for vark in vars.keys():
@@ -419,7 +423,7 @@ for i in range(len(r_int_empty)): # !Parallelize!
 
         prevkB = kB
         prevkC = kC
-print 'Rank: ' + str(mpi_rank) + ' completed interpolation.'
+print('Rank: ' + str(mpi_rank) + ' completed interpolation.')
 
 ## Now renormalize all abundances (in case mass-averaging and quadratic interpolation broke normalization)
 for i in range(0,ngridpts_rank):
@@ -434,7 +438,7 @@ def esf(x):
 
 # Bring parallel data back to main
 if (mpi_rank == 0):
-    print 'Gathering ugrid data.'
+    print('Gathering ugrid data.')
 for k in ugkeys:
     ugrid[k] = mpi_comm.gather(ugrid[k],root=0)
 
@@ -446,7 +450,7 @@ if (mpi_rank == 0):
     #    for i in range(mpi_size):
     #        ugrid_from_gather[k][start_rank[i]:elements_rank[i]+start_rank[i]] = ugrid[k][i]
 
-    print 'Rank: ' + str(mpi_rank) + ' printing grid data.'
+    print('Rank: ' + str(mpi_rank) + ' printing grid data.')
     # All grid intervals have now been computed, time to print out the grid data...
     gridFile = open(gridFileName,'w')
     
@@ -462,10 +466,10 @@ if (mpi_rank == 0):
     ## Write the grid data
     for i in range(mpi_size):
         for j in range(elements_rank[i]):
-    	    gridFile.write(str(esf(ugrid['rad_cm_ctr'][i][j])) + ' ')
-    	    for vark in vars.keys():
-    		gridFile.write(str(esf(ugrid[vark][i][j])) + ' ')
-    	    gridFile.write('\n')
+            gridFile.write(str(esf(ugrid['rad_cm_ctr'][i][j])) + ' ')
+            for vark in vars.keys():
+                gridFile.write(str(esf(ugrid[vark][i][j])) + ' ')
+            gridFile.write('\n')
     
     ## Close the grid file
     gridFile.close()

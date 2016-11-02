@@ -11,7 +11,7 @@ Also lets you open MESA profile and history files for ease of plotting.
 
 ## Dependencies:
 
-* Python 2 (e.g. 2.7.10)
+* Either python 2 or 3 (tested to yield the same output with versions 2.7.10 and 3.5.1)
 
 * numpy
 
@@ -25,4 +25,3 @@ Download [nucplotlib](https://github.com/dwillcox/nucplotlib) and add it to your
 
 * Rewrite with object-orientation for readability.
 
-* Port to Python 3

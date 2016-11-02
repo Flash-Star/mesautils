@@ -1,3 +1,4 @@
+from __future__ import print_function
 from MesaProfile import MesaProfile
 from Nuclides import Nuclides
 
@@ -13,4 +14,4 @@ for k in mstar.keys():
     if nucs.is_nuclide(k):
         l.append(k)
 
-print l
+print(l)
