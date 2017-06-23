@@ -20,6 +20,9 @@ This file is part of mesa2flash.
 """
 import numpy as np
 from collections import OrderedDict
+from periodictable import elements
+
+cmperRsun = 6.955e10 # centimeters per solar radius
 
 class MesaProfile:
     def __call__(self, pname=None):
@@ -53,6 +56,17 @@ class MesaProfile:
 
     def getStar(self):
         return self.star
+
+    def getIsotopes(self):
+        list_of_isotopes = []
+        for element in elements:
+            element_symbol = element.symbol.lower()            
+            for isotope in element:
+                massnumber = int(round(isotope.mass))
+                isotope_symbol = '{}{}'.format(element_symbol, massnumber)
+                if isotope_symbol in self.star.keys():
+                    list_of_isotopes.append(isotope_symbol)
+        return list_of_isotopes
 
     def fillDict(self,d,k,v):
         ## Fill a dictionary given a list of keys and values
@@ -109,6 +123,11 @@ class MesaProfile:
         self.fin.close()
         # Convert zone data structure to star data structure
         self.star = self.zone2star(self.zone,self.star)
+
+        # Add radius in cm as a field if it doesn't already exist and radius exists
+        if 'radius' in self.star.keys() and not 'radiuscm' in self.star.keys():
+            self.star['radiuscm'] = cmperRsun*self.star['radius']
+        
         # Add header to star data structure
         for k in self.head.keys():
             self.star[k] = self.head[k]
