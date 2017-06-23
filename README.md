@@ -14,6 +14,8 @@ Also lets you open MESA profile and history files for ease of plotting.
 
 * mpi4py
 
+* periodictable
+
 Also depends on the Nuclides class in nucplotlib, which includes a python interface to the JINA Nuclear data listing.
 
 Download [nucplotlib](https://github.com/dwillcox/nucplotlib) and add it to your PYTHONPATH.
