@@ -20,7 +20,3 @@ Also depends on the Nuclides class in nucplotlib, which includes a python interf
 
 Download [nucplotlib](https://github.com/dwillcox/nucplotlib) and add it to your PYTHONPATH.
 
-## TODO:
-
-* Rewrite with object-orientation for readability.
-
