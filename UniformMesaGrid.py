@@ -122,7 +122,7 @@ if (mpi_rank == 0):
         
     ### Create useful data structures ###
     # Number of MESA zones
-    npts = len(mstar['density'])
+    npts = len(mstar['zone'])
     
     # Create a field for radius in cm instead of Rsun units
     mstar['radiuscm'] = cmperRsun*mstar['radius']
