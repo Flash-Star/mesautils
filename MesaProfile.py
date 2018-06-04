@@ -20,7 +20,7 @@ This file is part of mesa2flash.
 """
 import numpy as np
 from collections import OrderedDict
-from periodictable import elements
+from elements import PeriodicTable
 
 cmperRsun = 6.955e10 # centimeters per solar radius
 
@@ -59,10 +59,9 @@ class MesaProfile:
 
     def getIsotopes(self):
         list_of_isotopes = []
-        for element in elements:
-            element_symbol = element.symbol.lower()            
-            for isotope in element:
-                massnumber = int(round(isotope.mass))
+        for element in PeriodicTable.table.keys():
+            element_symbol = element.lower()
+            for massnumber in range(1, 1000):
                 isotope_symbol = '{}{}'.format(element_symbol, massnumber)
                 if isotope_symbol in self.star.keys():
                     list_of_isotopes.append(isotope_symbol)
