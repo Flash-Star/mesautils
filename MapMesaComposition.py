@@ -32,7 +32,7 @@ class MapMesaComposition:
 		## Maintain constant C12 abundance
 		self.fmap['c12'] = ms['c12']
 		## Determine Ne22 abundance from model Ye
-		self.fmap['ne22'] = 22.0*(0.5-ms['ye'])
+		self.fmap['ne22'] = np.maximum(22.0*(0.5-ms['ye']), 0.0)
 		## Normalization requires Ne20 + O16 abundances = xother
 		xother = 1.0 - self.fmap['c12'] - self.fmap['ne22']
 		## Ne20/O16 ratio remains constant

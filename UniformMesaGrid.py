@@ -38,7 +38,6 @@ import argparse
 from collections import OrderedDict
 from MesaProfile import MesaProfile
 from MapMesaComposition import MapMesaComposition
-from Nuclides import Nuclides
 
 parser = argparse.ArgumentParser()
 parser.add_argument('MESA_INPUT_FILE', type=str, help='Name of the input MESA profile.')
@@ -108,12 +107,13 @@ if (mpi_rank == 0):
         vars = OrderedDict([('density',0),('temperature',1),('c12',2),('o16',3),('ne20',4),('ne22',5)])
         varx = OrderedDict([('c12',2),('o16',3),('ne20',4),('ne22',5)])
     else:
-        nucs = Nuclides()
         vars_list = [('density',0),('temperature',1),('ye',2)]
         start_varx = len(vars_list)
         varx_list = []
+        isotopes = mesa.getIsotopes()
+
         for k in mstar.keys():
-            if nucs.is_nuclide(k):
+            if k in isotopes:
                 varx_list.append((k,start_varx))
                 start_varx += 1
         vars_list += varx_list
